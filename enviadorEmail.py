@@ -1,8 +1,52 @@
-<!DOCTYPE html>
+# coding=utf-8
+import smtplib
+
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.MIMEBase import MIMEBase
+from email import encoders
+import pdfkit
+import os
+
+
+# me == my email address
+# you == recipient's email address
+me = "sergio.franco@fygsolutions.com"
+you = "sergio.franco@fygsolutions.com"
+
+# Create message container - the correct MIME type is multipart/alternative.
+msg = MIMEMultipart('alternative')
+msg['Subject'] = "Link"
+msg['From'] = me
+msg['To'] = you
+
+# Create the body of the message (a plain-text and an HTML version).
+text = "Hi!\nHow are you?\nHere is the link you wanted:\nhttp://www.python.org"
+html = """\
 <html>
 
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style>
+        body {
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+        }
 
+        table td,
+        table th {
+            padding: .75rem;
+            vertical-align: top;
+            border-top: 1px solid #dee2e6;
+            background-color: #fff;
+        }
+
+        thead th {
+            vertical-align: bottom;
+            color: #fff;
+            background-color: #212529;
+            border-color: #32383e
+        }
+    </style>
 </head>
 
 <body>
@@ -19,7 +63,7 @@
     </div>
     <div class="tabla">
         <h4>COLOCACIÓN POR DIVISIÓN</h4>
-        <table>
+        <table class="table">
             <thead>
                 <tr class="tituloTabla">
                     <th>División </th>
@@ -163,7 +207,7 @@
     </div>
     <div class="tabla">
         <h4>COLOCACIÓN POR DIVISIÓN</h4>
-        <table>
+        <table class="table">
             <thead>
                 <tr class="tituloTabla">
                     <th>División </th>
@@ -307,7 +351,7 @@
     </div>
     <div class="tabla">
         <h4>COLOCACIÓN POR DIVISIÓN</h4>
-        <table>
+        <table class="table">
             <thead>
                 <tr class="tituloTabla">
                     <th>División </th>
@@ -452,3 +496,41 @@
 </body>
 
 </html>
+"""
+
+# Record the MIME types of both parts - text/plain and text/html.
+part1 = MIMEText(text, 'plain')
+part2 = MIMEText(html, 'html')
+
+pdfkit.from_string(html.decode('utf-8'), 'temp/Colocacion.pdf')
+
+filename = "Colocacion.pdf"
+attachment = open("temp/Colocacion.pdf", "rb")
+part = MIMEBase('application', 'octet-stream')
+part.set_payload((attachment).read())
+encoders.encode_base64(part)
+part.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+# Attach parts into message container.
+# According to RFC 2046, the last part of a multipart message, in this case
+# the HTML message, is best and preferred.
+msg.attach(part1)
+msg.attach(part2)
+msg.attach(part)
+# Send the message via local SMTP server.
+mail = smtplib.SMTP('smtp.gmail.com', 587)
+
+mail.ehlo()
+
+mail.starttls()
+
+mail.login("sergio.franco@fygsolutions.com", "xxxxxxxx")
+
+mail.sendmail(me, you, msg.as_string())
+mail.quit()
+
+attachment.close()
+
+if os.path.exists("temp/Colocacion.pdf"):
+  os.remove("temp/Colocacion.pdf")
+else:
+  print("The file does not exist")
